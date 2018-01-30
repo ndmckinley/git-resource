@@ -195,6 +195,15 @@ check_uri() {
   }" | ${resource_dir}/check | tee /dev/stderr
 }
 
+check_uri_with_branch() {
+  jq -n "{
+    source: {
+      uri: $(echo $1 | jq -R .),
+      branch: $(echo $2 | jq -R .)
+    }
+  }" | ${resource_dir}/check | tee /dev/stderr
+}
+
 get_initial_ref() {
   local repo=$1
 
@@ -390,6 +399,15 @@ get_uri() {
     },
     params: {
       short_ref_format: \"test-%s\"
+    }
+  }" | ${resource_dir}/in "$2" | tee /dev/stderr
+}
+
+get_uri_with_branch() {
+  jq -n "{
+    source: {
+      uri: $(echo $1 | jq -R .),
+      branch: $(echo $3 | jq -R .)
     }
   }" | ${resource_dir}/in "$2" | tee /dev/stderr
 }
