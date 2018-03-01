@@ -1,6 +1,7 @@
 #!/bin/bash
 # vim: set ft=sh
 
+set -x
 set -e
 
 exec 3>&1 # make stdout available as fd 3 for the result
@@ -38,6 +39,7 @@ rebase=$(jq -r '.params.rebase // false' < $payload)
 merge=$(jq -r '.params.merge // false' < $payload)
 force=$(jq -r '.params.force // false' < $payload)
 only_tag=$(jq -r '.params.only_tag // false' < $payload)
+only_if_diff=$(jq -r '.params.only_if_diff // false' < $payload)
 annotation_file=$(jq -r '.params.annotate // ""' < $payload)
 notes_file=$(jq -r '.params.notes // ""' < $payload)
 
@@ -198,7 +200,20 @@ elif [ "$rebase" = "true" ]; then
   done
 else
   tag
-  push_src_and_tags
+  if [ "$only_if_diff" = "true" ]; then
+    if git fetch --recurse-submodules=on-demand push-target $branch; then
+      if ! git diff --submodule=diff FETCH_HEAD | grep "+++"; then
+        # No diff, so emit FETCH_HEAD.
+        git checkout FETCH_HEAD
+      else
+        push_src_and_tags
+      fi
+    else
+      push_src_and_tags
+    fi
+  else
+    push_src_and_tags
+  fi
   add_and_push_notes
 fi
 
