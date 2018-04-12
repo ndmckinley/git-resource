@@ -39,6 +39,7 @@ commit_verification_key_ids=$(jq -r '(.source.commit_verification_key_ids // [])
 commit_verification_keys=$(jq -r '(.source.commit_verification_keys // [])[]' < $payload)
 gpg_keyserver=$(jq -r '.source.gpg_keyserver // "hkp://ipv4.pool.sks-keyservers.net/"' < $payload)
 disable_git_lfs=$(jq -r '(.params.disable_git_lfs // false)' < $payload)
+branchfile=$(jq -r '(.params.branch_file // "")' < $payload)
 
 configure_git_global "${git_config_payload}"
 
@@ -46,6 +47,11 @@ if [ -z "$uri" ]; then
   echo "invalid payload (missing uri):" >&2
   cat $payload >&2
   exit 1
+fi
+
+if [ -z "$branch" ] && [ -f "$branchfile" ]; then
+  branch="$(cat $branchfile)"
+  echo "Found branch name: '$branch'"
 fi
 
 branchflag=""
