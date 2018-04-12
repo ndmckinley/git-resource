@@ -48,6 +48,7 @@ gpg_keyserver=$(jq -r '.source.gpg_keyserver // "hkp://ipv4.pool.sks-keyservers.
 disable_git_lfs=$(jq -r '(.params.disable_git_lfs // false)' < $payload)
 clean_tags=$(jq -r '(.params.clean_tags // false)' < $payload)
 short_ref_format=$(jq -r '(.params.short_ref_format // "%s")' < $payload)
+branchfile=$(jq -r '(.params.branch_file // "")' < $payload)
 
 configure_git_global "${git_config_payload}"
 
@@ -55,6 +56,11 @@ if [ -z "$uri" ]; then
   echo "invalid payload (missing uri):" >&2
   cat $payload >&2
   exit 1
+fi
+
+if [ -z "$branch" ] && [ -f "$branchfile" ]; then
+  branch="$(cat $branchfile)"
+  echo "Found branch name: '$branch'"
 fi
 
 branchflag=""
