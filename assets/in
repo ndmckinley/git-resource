@@ -39,6 +39,7 @@ branch=$(jq -r '.source.branch // ""' < $payload)
 git_config_payload=$(jq -r '.source.git_config // []' < $payload)
 ref=$(jq -r '.version.ref // "HEAD"' < $payload)
 depth=$(jq -r '(.params.depth // 0)' < $payload)
+submodule_depth=$(jq -r '(.params.depth // 1)' < $payload)
 fetch=$(jq -r '(.params.fetch // [])[]' < $payload)
 submodules=$(jq -r '(.params.submodules // "all")' < $payload)
 submodule_recursive=$(jq -r '(.params.submodule_recursive // true)' < $payload)
@@ -152,19 +153,30 @@ if [ "$submodules" != "none" ]; then
 
   for submodule in $submodules; do
     # remember submodule update config
-    update_conf_was_set=1
+    update_conf_was_set="false"
     if update_conf="$(git config --get "submodule.${submodule}.update")"; then
-	    update_conf_was_set=0
+	    update_conf_was_set="true"
     fi
 
     # temporarily set to our shallow clone deepening shell script
     git config "submodule.${submodule}.update" "!$bin_dir"/deepen_shallow_clone_until_ref_is_found
 
-    concourse_git_resource__depth="$depth" \
-      git submodule update --no-fetch $depthflag $submodule_parameters $submodule
+    submodule_depthflag=""
+    if test "$submodule_depth" -gt 0 2> /dev/null; then
+      submodule_depthflag="--depth $submodule_depth"
+    fi
+
+    if submodule_branch="$(git config -f .gitmodules --get submodule.$submodule.branch)"; then
+      concourse_git_resource__depth="$submodule_depth" \
+      concourse_git_resource__branch=$submodule_branch \
+        git submodule update --no-fetch $submodule_depthflag $submodule_parameters $submodule
+    else
+      concourse_git_resource__depth="$submodule_depth" \
+        git submodule update --no-fetch $submodule_depthflag $submodule_parameters $submodule
+    fi
 
     # restore submodule update config
-    if [ "$update_conf_was_set" != 0 ]; then
+    if [ "$update_conf_was_set" == "true" ]; then
       git config "submodule.${submodule}.update" "$update_conf"
     else
       git config --unset "submodule.${submodule}.update"

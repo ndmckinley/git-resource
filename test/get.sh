@@ -148,7 +148,6 @@ it_returns_list_of_tags_in_metadata() {
 it_can_use_submodlues_without_perl_warning() {
   local repo=$(init_repo_with_submodule | cut -d "," -f1)
   local dest=$TMPDIR/destination
-
   output=$(get_uri_with_submodules_all "file://"$repo 1 $dest 2>&1)
   ! echo "${output}" | grep "perl: not found"
 }
