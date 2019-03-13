@@ -200,17 +200,11 @@ elif [ "$rebase" = "true" ]; then
   done
 else
   tag
-  if [ "$only_if_diff" = "true" ]; then
-    if git fetch --recurse-submodules=on-demand push-target $branch; then
-      if ! git diff --submodule=diff FETCH_HEAD | grep "+++"; then
-        # No diff, so emit FETCH_HEAD.
-        git checkout FETCH_HEAD
-      else
-        push_src_and_tags
-      fi
-    else
-      push_src_and_tags
-    fi
+  if [ "$only_if_diff" = "true" ] &&
+       git fetch --recurse-submodules=on-demand push-target "$branch" &&
+       ! git diff --submodule=diff FETCH_HEAD | grep "+++"; then
+    # No diff, so emit FETCH_HEAD.
+    git checkout FETCH_HEAD
   else
     push_src_and_tags
   fi
